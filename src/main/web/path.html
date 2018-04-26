@@ -1,0 +1,282 @@
+<!-- 重点参数：renderOptions -->
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+  <title>轨迹展示&巡航</title>
+  <style>
+    html,
+    body,
+    #container {
+      width: 100%;
+      height: 768px;
+      margin: 0px;
+      bottom: 0px;
+    }
+    #loadingTip {
+      position: absolute;
+      z-index: 9999;
+      top: 0;
+      left: 0;
+      padding: 3px 10px;
+      background: red;
+      color: #fff;
+      font-size: 14px;
+    }
+    #control {
+      width: 100%;
+      height: 400px;
+    }
+  </style>
+  <link rel="stylesheet" type="text/css" href="../css/public.css"/>
+  <link rel="stylesheet" type="text/css" href="../css/main.css"/>
+  <script src="js/path.js"></script>
+  <script type="text/javascript" src='//webapi.amap.com/maps?v=1.4.5&key=6d821822ff4bcc92c94f0550fb7a59b2'></script>
+  <!-- UI组件库 1.0 -->
+  <script src="//webapi.amap.com/ui/1.0/main.js?v=1.0.11"></script>
+  <!--JQuer-->
+  <script src="http://cdn.static.runoob.com/libs/jquery/1.10.2/jquery.min.js"></script>
+
+</head>
+
+<body>
+
+<div class="main main-outer" id="main-outer">
+  <div class="main main-inner">
+    <div class="inner">
+      <div class="translate-wrap">
+        <div class="trans-operation-wrapper clearfix">
+          <div class="trans-operation clearfix">
+            <a href="javascript:void(0);" class="language-btn select-from-language">
+              <span class="language-selected">原始数据</span>
+            </a>
+            <a href="javascript:void(0);" class="language-btn-disable from-to-exchange">
+            <span class="exchange-mask">
+            </span>
+            </a>
+            <a href="javascript:void(0);" class="language-btn select-to-language">
+            <span class="select-inner">
+              <span class="language-selected" data-lang="zh">转换后坐标</span>
+            </span>
+            </a>
+            <button class="trans-btn trans-btn-zh" id="convert-button" target="_self" onclick="convert();">转换</button>
+            <button class="trans-btn trans-btn-zh" id="parse-button" target="_self" onclick="load();">解析</button>
+
+          </div>
+          <div class="translate-setting">
+            <a href="javascript:void(0);" class="setting-btn data-hover-tip"
+               data-hover-tip-text="设置"><span class="icon-setting"></span></a>
+            <div class="setting-options">
+              <span class="setting-options-arrow"><em class="setting-arrow-inner"></em></span>
+            </div>
+          </div>
+        </div>
+        <div class="translateio">
+          <div class="translate-main  clearfix">
+            <div class="trans-left">
+              <div class="trans-input-wrap">
+                <div class="input-wrap">
+                  <div class="textarea-wrap">
+                    <textarea class="textarea" id="edit_input"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="trans-right">
+              <div class="output-wrap output-blank">
+                <div class="textarea-wrap">
+                  <textarea class="textarea" id="display_output" data-height="70" readonly="readonly">请在左边输入数据...</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="container"></div>
+
+<script>
+  //创建地图
+  var map = new AMap.Map('container', {
+    zoom: 8
+  });
+  //加载地图
+  function load() {
+
+    if (mapData == "" || mapData == null) {
+      console.log("mapData is null");
+      return;
+    }
+    AMapUI.load(['ui/misc/PathSimplifier', 'lib/$'],
+        function (PathSimplifier, $) {
+          if (!PathSimplifier.supportCanvas) {
+            alert('当前环境不支持 Canvas！');
+            return;
+          }
+          //just some colors
+          var colors = [
+            "#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6",
+            "#dd4477", "#66aa00",
+            "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc",
+            "#e67300", "#8b0707",
+            "#651067", "#329262", "#5574a6", "#3b3eac"
+          ];
+
+          var pathSimplifierIns = new PathSimplifier({
+            zIndex: 100,
+            //autoSetFitView:false,
+            map: map, //所属的地图实例
+
+            getPath: function (pathData, pathIndex) {
+
+              return pathData.path;
+            },
+            getHoverTitle: function (pathData, pathIndex, pointIndex) {
+
+              if (pointIndex >= 0) {
+                //point
+                return pathData.name + '，点：' + pointIndex + '/'
+                    + pathData.path.length;
+              }
+
+              return pathData.name + '，点数量' + pathData.path.length;
+            },
+            renderOptions: {
+              pathLineStyle: {
+                dirArrowStyle: true
+              },
+              getPathStyle: function (pathItem, zoom) {
+
+                var color = colors[pathItem.pathIndex % colors.length],
+                    lineWidth = Math.round(4 * Math.pow(1.1, zoom - 3));
+
+                return {
+                  pathLineStyle: {
+                    strokeStyle: color,
+                    lineWidth: lineWidth
+                  },
+                  pathLineSelectedStyle: {
+                    lineWidth: lineWidth + 2
+                  },
+                  pathNavigatorStyle: {
+                    fillStyle: color
+                  }
+                };
+              }
+            }
+          });
+
+          window.pathSimplifierIns = pathSimplifierIns;
+
+          $('<div id="loadingTip">加载数据，请稍候...</div>').appendTo(document.body);
+
+          $.getJSON("../data/parse?data="+edit_content, function (d) {
+
+            $('#loadingTip').remove();
+
+            var flyRoutes = [];
+
+            d.data.push.apply(d.data, flyRoutes);
+
+            pathSimplifierIns.setData(d.data);
+
+            //initRoutesContainer(d);
+
+            function onload() {
+              pathSimplifierIns.renderLater();
+            }
+
+            function onerror(e) {
+              alert('图片加载失败！');
+            }
+
+            var navg2 = pathSimplifierIns.createPathNavigator(0, {
+              loop: true,
+              speed: 500,
+              pathNavigatorStyle: {
+                width: 16,
+                height: 32,
+                content: PathSimplifier.Render.Canvas.getImageContent(
+                    '//webapi.amap.com/ui/1.0/ui/misc/PathSimplifier/examples/imgs/car.png',
+                    onload, onerror),
+                strokeStyle: null,
+                fillStyle: null
+              }
+            });
+
+            navg2.start();
+
+          });
+        });
+  }
+  var edit_content;
+  var convert = function () {
+    console.log("convert");
+    //从剪辑块中读取数据
+    edit_content = document.getElementById("edit_input").value;
+    console.log("edit:", edit_content);
+    if (!isSureForm(edit_content)) {
+      alert("请输入正确格式的数据");
+      console.log("error", "请输入正确格式的数据");
+      return;
+    }
+    var output = document.getElementById("display_output");
+    getConvertData(edit_content);
+    output.innerHTML = JSON.stringify(mapData);
+    output.style.display = "block";
+
+  }
+
+  //检验是否是正确的数据格式
+  //      lat,lon;lat2.lon;
+  function isSureForm(num) {
+
+    var reg = /^(\d+\.\d+,\d+\.\d+;)+$/;
+    if (!num.match(reg)) {
+      return false;
+    }
+    return true;
+  }
+
+  //轨迹json数据
+  var mapData;
+
+  getConvertData = function (dat) {
+
+    $.ajax({
+      url:"../data/parse?",
+      async:false,          //是否异步
+      type:'GET',
+      data:"data="+dat,
+      dataType:"json",    //数据返回格式
+      /* jsonpCallback:function () {
+         alert("jsonpCallback");
+       },*/
+      success:function (data,textStatus,jqXHR) {
+        console.log("textStatus",data);
+        console.log("jqXHR",jqXHR);
+        console.log("data",data);
+        mapData =  data;
+      },
+      error: function (XMLHttpRequest, textStatus, errorThrown) {
+        // 状态码
+        console.log(XMLHttpRequest.status);
+        // 状态
+        console.log(XMLHttpRequest.readyState);
+        // 错误信息
+        console.log(textStatus);
+      }
+
+    });
+
+  }
+</script>
+
+</body>
+
+</html>
