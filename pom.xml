@@ -6,6 +6,7 @@
 
   <groupId>com.liushiyao.gg</groupId>
   <artifactId>gg</artifactId>
+  <packaging>war</packaging>
   <version>1.0-SNAPSHOT</version>
 
 
@@ -145,10 +146,7 @@
 
 
   <build>
-
     <finalName>gg</finalName>
-
-
   </build>
 
 
