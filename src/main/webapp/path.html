@@ -30,8 +30,8 @@
       height: 400px;
     }
   </style>
-  <link rel="stylesheet" type="text/css" href="../css/public.css"/>
-  <link rel="stylesheet" type="text/css" href="../css/main.css"/>
+  <link rel="stylesheet" type="text/css" href="../gg/css/public.css"/>
+  <link rel="stylesheet" type="text/css" href="../gg/css/main.css"/>
   <script src="js/path.js"></script>
   <script type="text/javascript" src='//webapi.amap.com/maps?v=1.4.5&key=6d821822ff4bcc92c94f0550fb7a59b2'></script>
   <!-- UI组件库 1.0 -->
@@ -175,7 +175,7 @@
 
           $('<div id="loadingTip">加载数据，请稍候...</div>').appendTo(document.body);
 
-          $.getJSON("../data/parse?data="+edit_content, function (d) {
+          $.getJSON("../gg/data/parse?data="+edit_content, function (d) {
 
             $('#loadingTip').remove();
 
@@ -249,7 +249,7 @@
   getConvertData = function (dat) {
 
     $.ajax({
-      url:"../data/parse?",
+      url:"../gg/data/parse?",
       async:false,          //是否异步
       type:'GET',
       data:"data="+dat,
